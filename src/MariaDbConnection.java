@@ -6,7 +6,7 @@ public class MariaDbConnection {
     public static Connection createConnection() {
         try {
             return DriverManager.getConnection(
-                    "jdbc:mariadb://localhost:3306/minerals",
+                    "jdbc:mariadb://192.168.3.12:3306/minerals",
                     "dba", "aloangy"
             );
         }

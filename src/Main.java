@@ -31,11 +31,11 @@ public class Main {
 
         ExcelReadData excelReadData;
         if(connection!=null)
-            excelReadData = new ExcelReadData("C:\\Users\\alons\\Documents\\MalpicaNew.xlsx");
+            excelReadData = new ExcelReadData("MalpicaNew.xlsx");
         else
             System.out.println("Conexion fallida");
 
-        excelReadData = new ExcelReadData("C:\\Users\\alons\\Documents\\MalpicaNew.xlsx");
+        excelReadData = new ExcelReadData("MalpicaNew.xlsx");
 
         //excelReadData.readData();
 
