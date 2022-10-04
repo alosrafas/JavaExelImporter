@@ -37,8 +37,7 @@ public class ExcelReadData
         {
             Sheet sheet = wb.getSheetAt(0);     //creating a Sheet object to retrieve object
             ArrayList<Row> rowsList = new ArrayList<>();
-            int num = sheet.getPhysicalNumberOfRows();
-            //iterating over excel file
+            //iterating over Excel file
             sheet.forEach(rowsList::add);
             rowsList.remove(0);
             return rowsList;

@@ -27,7 +27,7 @@ public class Main {
 
         try {
             columnsToCheck = mapper.readValue(new File("columns.json")
-                    , new TypeReference<List<Map<String, ArrayList<LinkedHashMap<String, String>>>>>(){}).get(0).get("columns").get(0);
+                    , new TypeReference<Map<String, ArrayList<LinkedHashMap<String, String>>>>(){}).get("columns").get(0);
         }
         catch (DatabindException e){
             e.printStackTrace();
