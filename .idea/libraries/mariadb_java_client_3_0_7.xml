@@ -7,6 +7,9 @@
       <root url="jar://$PROJECT_DIR$/poi-ooxml-3.17.jar!/" />
       <root url="jar://$PROJECT_DIR$/poi-ooxml-schemas-3.17.jar!/" />
       <root url="jar://$PROJECT_DIR$/xmlbeans-2.6.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/jackson-core-2.13.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/jackson-databind-2.13.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/jackson-annotations-2.13.4.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

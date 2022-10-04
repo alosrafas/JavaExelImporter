@@ -1,0 +1,17 @@
+[
+  {
+    "columns": [
+      {
+        "Clasificación": "clasificacion",
+        "Sistema de Cristalización": "sistemaCristalizacion",
+        "Localidad": "localidad",
+        "Estado": "estado",
+        "País": "pais",
+        "Clase Química": "claseQuimica",
+        "Grupo": "grupo",
+        "Ubicación": "ubicacion",
+        "Colector Donador": "colectorDonador"
+      }
+    ]
+  }
+]
