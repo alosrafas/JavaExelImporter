@@ -93,7 +93,7 @@ public class Main {
         if (!nonRepeatedvaluesToAdd.isEmpty())
             nonRepeatedvaluesToAdd.forEach(values -> valuesToInsert.put(values.getColumNumber(), values.getColumId().toString()));
 
-        repeatedvaluesToAdd.toString();
+        System.out.println(repeatedvaluesToAdd.toString());
 
 
 
