@@ -11,9 +11,9 @@ public class Mineral {
     private int idPais;
     private int idClaseQuimica;
     private int idGrupo;
-    private double largo;
-    private double alto;
-    private double ancho;
+    private Double largo;
+    private Double alto;
+    private Double ancho;
     private String notasCampo;
     private int idUbicacion;
     private String observaciones;
@@ -23,8 +23,8 @@ public class Mineral {
 
     public Mineral(String numero, int idClasificacion, String variedad, String formulaQuimica,
                    int idSistemaCristalizacion, String mineralAsociados, String matriz, int idLocalidad,
-                   int idEstado, int idPais, int idClaseQuimica, int idGrupo, double largo, double alto,
-                   double ancho, String notasCampo, int idUbicacion, String observaciones, int idColector,
+                   int idEstado, int idPais, int idClaseQuimica, int idGrupo, Double largo, Double alto,
+                   Double ancho, String notasCampo, int idUbicacion, String observaciones, int idColector,
                    String estadoEjemplar, String fechaIngreso) {
         this.numero = numero;
         this.idClasificacion = idClasificacion;
@@ -145,7 +145,7 @@ public class Mineral {
         this.idGrupo = idGrupo;
     }
 
-    public double getLargo() {
+    public Double getLargo() {
         return largo;
     }
 
@@ -153,7 +153,7 @@ public class Mineral {
         this.largo = largo;
     }
 
-    public double getAlto() {
+    public Double getAlto() {
         return alto;
     }
 
@@ -161,7 +161,7 @@ public class Mineral {
         this.alto = alto;
     }
 
-    public double getAncho() {
+    public Double getAncho() {
         return ancho;
     }
 

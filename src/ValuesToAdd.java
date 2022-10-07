@@ -2,11 +2,19 @@ public class ValuesToAdd {
     private Integer columId;
     private String columnValue;
     private Integer columNumber;
+    private String columnName;
 
     public ValuesToAdd(Integer columNumber, Integer columId, String columnValue) {
         this.columNumber = columNumber;
         this.columnValue = columnValue;
         this.columId = columId;
+    }
+
+    public ValuesToAdd(Integer columNumber, Integer columId, String columnValue, String columnName) {
+        this.columNumber = columNumber;
+        this.columnValue = columnValue;
+        this.columId = columId;
+        this.columnName = columnName;
     }
 
     public Integer getColumId() {
@@ -31,5 +39,13 @@ public class ValuesToAdd {
 
     public void setColumNumber(Integer columNumber) {
         this.columNumber = columNumber;
+    }
+
+    public String getColumnName() {
+        return columnName;
+    }
+
+    public void setColumnName(String columnName) {
+        this.columnName = columnName;
     }
 }
