@@ -86,9 +86,15 @@ public class Main {
         if (!repeatedvaluesToAdd.isEmpty())
             repeatedvaluesToAdd.forEach(values -> valuesToInsert.put(values.getColumNumber(), values.getColumId().toString()));
 
-        nonRepeatedvaluesToAdd.get(0).setColumId(insertNonRepeatedValues(connection,
-                headersMap.get(nonRepeatedvaluesToAdd.get(0).getColumNumber()),
-                nonRepeatedvaluesToAdd.get(0).getColumnValue()));
+        nonRepeatedvaluesToAdd.forEach(column -> {
+            try {
+                column.setColumId(insertNonRepeatedValues(connection,
+                        column.getColumnName(),
+                        column.getColumnValue()));
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
 
         if (!nonRepeatedvaluesToAdd.isEmpty())
             nonRepeatedvaluesToAdd.forEach(values -> valuesToInsert.put(values.getColumNumber(), values.getColumId().toString()));
@@ -223,17 +229,19 @@ public class Main {
     }
 
     private static int normalInsert(Connection connection, String tableName,  String value) throws SQLException {
-        String sqlQuery = "insert into tableName values (?,?)";
+        String sqlQuery = "insert into " + tableName + " values (null, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
+            pstmt.setString(1, value);
             boolean result = pstmt.execute();
             System.out.println("Row inserted: "+ result);
-            //connection.commit();
+            connection.commit();
 
             sqlQuery = "SELECT LAST_INSERT_ID()";
             PreparedStatement pstmt2 = connection.prepareStatement(sqlQuery);
             ResultSet resultSet = pstmt2.executeQuery();
-            return resultSet.getInt(0);
+            resultSet.next();
+            return resultSet.getInt(1);
         } catch (Exception e) {
             e.printStackTrace();
             connection.rollback();
@@ -262,7 +270,7 @@ public class Main {
     }
 
     private static int insertLocalidad(Connection connection, String tableName,  String value) throws SQLException {
-        String sqlQuery = "insert into tableName values (?,?)";
+        String sqlQuery = "insert into" + tableName + " values (?,?)";
 
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
