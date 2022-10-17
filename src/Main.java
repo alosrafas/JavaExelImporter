@@ -1,6 +1,8 @@
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.commons.collections4.iterators.ReverseListIterator;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Row;
 
@@ -24,7 +26,7 @@ public class Main {
 
     private static ArrayList<Mineral> minerals = new ArrayList<>();
 
-    private static String[] LOCALIDAD = {"Pais","Localidad","Estado"};
+    private static List<String> LOCALIDAD = Arrays.asList("localidad","estado");
 
     public static void main(String[] args) throws IOException, InvalidFormatException, SQLException {
         Connection connection = MariaDbConnection.createConnection();
@@ -43,8 +45,6 @@ public class Main {
 
         excelReadData = new ExcelReadData("MalpicaNew.xlsx");
 
-        //excelReadData.readData();
-
         columnsToCheck.toString();
         Map<Integer, String> headersMap = excelReadData.getHeaders();
 
@@ -58,27 +58,29 @@ public class Main {
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
-       // headersMap.forEach();
 
         ArrayList<Row> rowList = excelReadData.getRows();
 
         importWithoutCheck.forEach(header -> valuesToInsert.put(header,rowList.get(92).getCell(header).toString()));
 
-        //ArrayList<Row> rowsToCheck = rowList.stream()
 
-        //System.out.println(rowList.get(0).getCell(0).getStringCellValue());
+        // rowList.forEach(row -> {
+        //     importWithoutCheck.forEach(header -> valuesToInsert.put(header,row.getCell(header).toString()));
 
-        //headersMap.forEach((key, value) -> );
+        //     headersToCheck.forEach(header -> getInsertValues(connection,
+        //     (String) columnsToCheck.get(headersMap.get(header)),
+        //     row.getCell(header).getStringCellValue(),
+        //     header));
+
+        //     nonRepeatedvaluesToAdd.clear();
+        //     repeatedvaluesToAdd.clear();
+        // });
+
 
         headersToCheck.forEach(header -> getInsertValues(connection,
                 (String) columnsToCheck.get(headersMap.get(header)),
                 rowList.get(92).getCell(header).getStringCellValue(),
                 header));
-
-//        valuesToAdd.entrySet().forEach(integerMapEntry -> {
-//            Integer columNumber = integerMapEntry.getValue().
-//            otherColumns.put()
-//        });
 
         valuesToInsert.toString();
         nonRepeatedvaluesToAdd.toString();
@@ -86,13 +88,29 @@ public class Main {
         if (!repeatedvaluesToAdd.isEmpty())
             repeatedvaluesToAdd.forEach(values -> valuesToInsert.put(values.getColumNumber(), values.getColumId().toString()));
 
+        List<ValuesToAdd> localidad = nonRepeatedvaluesToAdd.stream()
+        .filter(column -> LOCALIDAD.contains(column.getColumnName()))
+        .sorted()
+        .collect(Collectors.toList());
+
+        Collections.reverse(localidad);
+
         nonRepeatedvaluesToAdd.forEach(column -> {
             try {
-                column.setColumId(insertNonRepeatedValues(connection,
-                        column.getColumnName(),
-                        column.getColumnValue()));
+                if (!LOCALIDAD.contains(column.getColumnName()))
+                    column.setColumId(insertNonRepeatedValues(connection,
+                            column.getColumnName(),
+                            column.getColumnValue()));
             } catch (SQLException e) {
                 e.printStackTrace();
+            }
+        });
+
+        localidad.forEach(column -> {
+            try {
+                insertLocalidades(connection, column.getColumnName(), column.getColumnValue(), column);
+            } catch (SQLException e1) {
+                e1.printStackTrace();
             }
         });
 
@@ -110,16 +128,6 @@ public class Main {
                 valuesToInsert.get(19), valuesToInsert.get(20)));
         minerals.toString();
 
-
-
-        //getInsertValues(connection, headersMap.get(0), rowList.get(0).getCell(0).getStringCellValue());
-
-        //System.out.println(row2 xList.get(0).);
-
-//        rowList.get(2).cellIterator().forEachRemaining(cell -> {
-//            if (!cell.getStringCellValue().isEmpty())
-//                System.out.println(cell.getStringCellValue());
-//        });
         assert connection != null;
         connection.close();
 
@@ -138,7 +146,6 @@ public class Main {
                 columnMap.put(resultSet.getString(2), resultSet.getInt(1));
             }
             Integer columnId;
-            Map<Integer, String> values = new HashMap<>();
             if ((headerNum==7 || headerNum==8 || headerNum==9) && columnValue.equals("")){
                 columnValue="Desconocido";
                 if (headerNum==7){
@@ -163,8 +170,6 @@ public class Main {
                     }
                     return;
                 }
-
-
             }
             if(columnMap.containsKey(columnValue)) {
                 columnId = columnMap.get(columnValue);
@@ -221,14 +226,7 @@ public class Main {
         }
     }
 
-    public static int insertNonRepeatedValues(Connection connection, String tableName,  String value) throws SQLException {
-
-        if (!Arrays.stream(LOCALIDAD).collect(Collectors.toList()).contains(tableName))
-            return normalInsert(connection, tableName, value);
-        return 0;
-    }
-
-    private static int normalInsert(Connection connection, String tableName,  String value) throws SQLException {
+    private static int insertNonRepeatedValues(Connection connection, String tableName,  String value) throws SQLException {
         String sqlQuery = "insert into " + tableName + " values (null, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
@@ -249,19 +247,43 @@ public class Main {
         return 0;
     }
 
-    private static int insertEstado(Connection connection, String tableName,  String value) throws SQLException {
+    private static void insertLocalidades(Connection connection, String tableName,  String value, ValuesToAdd column) throws SQLException {
+        if(tableName.equals("estado")){
+            column.setColumId(insertEstado(connection, tableName, value));
+        }
+        else{
+            column.setColumId(insertLocalidad(connection, tableName, value));
+        }
+    }
 
-        String sqlQuery = "insert into tableName values (?,?)";
+    private static int insertLocalidad(Connection connection, String tableName,  String value) throws SQLException{
+        String sqlQuery = "insert into " + tableName + " values (null, ?, ?)";
+        int idPais;
+        ValuesToAdd paisRepetido = repeatedvaluesToAdd.stream().filter(column -> column.getColumnName().equals("pais")).findFirst().orElse(null);
+        ValuesToAdd paisSinRepetir = nonRepeatedvaluesToAdd.stream().filter(column -> column.getColumnName().equals("pais")).findFirst().orElse(null);
+        if (paisRepetido!=null)
+        {
+            idPais = paisRepetido.getColumId();
+        }
+        else
+        {
+            idPais = paisSinRepetir.getColumId();
+        }
 
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
+            pstmt.setString(1, value);
+            pstmt.setInt(2, idPais);
             boolean result = pstmt.execute();
             System.out.println("Row inserted: "+ result);
-            //connection.commit();
+            connection.commit();
 
-            sqlQuery = "SELECT LAST_INSERT_ID()";
-
-
+            sqlQuery = "select * from localidad where idPais=? and idEstado=? order by idLocalidad desc limit 1";
+            PreparedStatement pstmt2 = connection.prepareStatement(sqlQuery);
+            pstmt2.setInt(0, idPais);
+            ResultSet resultSet = pstmt2.executeQuery();
+            resultSet.next();
+            return resultSet.getInt(1);
         } catch (Exception e) {
             e.printStackTrace();
             connection.rollback();
@@ -269,18 +291,34 @@ public class Main {
         return 0;
     }
 
-    private static int insertLocalidad(Connection connection, String tableName,  String value) throws SQLException {
-        String sqlQuery = "insert into" + tableName + " values (?,?)";
+    private static int insertEstado(Connection connection, String tableName,  String value) throws SQLException{
+        String sqlQuery = "insert into " + tableName + " values (null, ?, ?)";
+        int idPais;
+        ValuesToAdd paisRepetido = repeatedvaluesToAdd.stream().filter(column -> column.getColumnName().equals("pais")).findFirst().orElse(null);
+        ValuesToAdd paisSinRepetir = nonRepeatedvaluesToAdd.stream().filter(column -> column.getColumnName().equals("pais")).findFirst().orElse(null);
+        if (paisRepetido!=null)
+        {
+            idPais = paisRepetido.getColumId();
+        }
+        else
+        {
+            idPais = paisSinRepetir.getColumId();
+        }
 
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
+            pstmt.setString(1, value);
+            pstmt.setInt(2, idPais);
             boolean result = pstmt.execute();
             System.out.println("Row inserted: "+ result);
-            //connection.commit();
+            connection.commit();
 
-            sqlQuery = "SELECT LAST_INSERT_ID()";
-
-
+            sqlQuery = "select * from estado where idPais=? order by idEstado desc limit 1";
+            PreparedStatement pstmt2 = connection.prepareStatement(sqlQuery);
+            pstmt2.setInt(0, idPais);
+            ResultSet resultSet = pstmt2.executeQuery();
+            resultSet.next();
+            return resultSet.getInt(1);
         } catch (Exception e) {
             e.printStackTrace();
             connection.rollback();
