@@ -14,19 +14,35 @@ public class QueryMethods {
     private static final ArrayList<Mineral> minerals = new ArrayList<>();
     private static final Map<Integer, String> valuesToInsert = new HashMap<>();
     private static final List<String> LOCALIDAD = Arrays.asList("localidad","estado");
-
-    public static final Localidad localidad = new Localidad();
+    private static final List<Integer> LOCALIDADHEADERS = Arrays.asList(8, 7);
 
     public static Consumer<Row> insertaDatos(Connection connection, Map<Integer, String> headersMap, List<Integer> headersToCheck, List<Integer> headersWithoutCheck, Map<String, String> columnsToCheck) {
         return row -> {
             headersWithoutCheck.forEach(header -> valuesToInsert.put(header, row.getCell(header).toString()));
 
-            headersToCheck.forEach(header -> getInsertValues(connection,
+            headersToCheck.stream()
+                    .filter(column -> !LOCALIDADHEADERS.contains(column))
+                    .forEach(header -> getInsertValues(connection,
                     columnsToCheck.get(headersMap.get(header)),
                     row.getCell(header).getStringCellValue(),
                     header));
 
-            getInsertLocalidades();
+
+            List<Integer> localidadHeaders = headersToCheck.stream()
+                    .filter(LOCALIDADHEADERS::contains)
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+
+            localidadHeaders.forEach(header -> {
+                try {
+                    getInsertLocalidades(connection,
+                                    columnsToCheck.get(headersMap.get(header)),
+                                    row.getCell(header).getStringCellValue(),
+                                    header);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
             if (!repeatedvaluesToAdd.isEmpty())
                 repeatedvaluesToAdd.forEach(values -> valuesToInsert.put(values.getColumNumber(), values.getColumId().toString()));
@@ -221,50 +237,109 @@ public class QueryMethods {
                 columnMap.put(resultSet.getString(2), resultSet.getInt(1));
             }
             Integer columnId;
-            if ((headerNum==7 || headerNum==8 || headerNum==9)) {
+            if (headerNum==9) {
                 if (columnValue.equals("")) {
                     columnValue = "Desconocido";
                 }
-                checkLocalidades(columnValue, headerNum, columnMap);
             }
-            if (headerNum!=7 && headerNum!=8) {
-                if (columnMap.containsKey(columnValue)) {
-                    columnId = columnMap.get(columnValue);
-                    repeatedvaluesToAdd.add(new ValuesToAdd(headerNum, columnId, columnValue, table));
-                } else {
+            if (columnMap.containsKey(columnValue)) {
+                columnId = columnMap.get(columnValue);
+                repeatedvaluesToAdd.add(new ValuesToAdd(headerNum, columnId, columnValue, table));
+            } else {
+                nonRepeatedvaluesToAdd.add(new ValuesToAdd(headerNum, null, columnValue, table));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void getInsertLocalidades(Connection connection, String table, String columnValue, int headerNum) throws SQLException {
+
+        ValuesToAdd pais = repeatedvaluesToAdd.stream().filter(values -> values.getColumnName().equals("pais")).findFirst().orElse(null);
+        ValuesToAdd estado = null;
+        if(pais!=null && pais.getColumId()!=null) {
+            if(table.equals("estado")) {
+                getEstado(LOCALIDADHEADERS.get(0), connection, pais.getColumId(), columnValue);
+            }
+            else {
+                estado = repeatedvaluesToAdd.stream().filter(values -> values.getColumnName().equals("estado")).findFirst().orElse(null);
+                if (estado!=null && estado.getColumId()!=null) {
+                    getLocalidad(LOCALIDADHEADERS.get(1), connection, pais.getColumId(), estado.getColumId(), columnValue);
+                }
+                else{
                     nonRepeatedvaluesToAdd.add(new ValuesToAdd(headerNum, null, columnValue, table));
                 }
+            }
+        }
+        else{
+            nonRepeatedvaluesToAdd.add(new ValuesToAdd(headerNum, null, columnValue, table));
+        }
+    }
+
+    private static void getEstado(int header, Connection connection, int idPais, String columnValue) throws SQLException {
+
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT * \n" +
+                        "FROM " + "estado")) {
+            ResultSet resultSet = statement.executeQuery();
+
+            ArrayList<String> values = new ArrayList<>();
+            ArrayList<Integer> estadosId = new ArrayList<>();
+            ArrayList<Integer> paisesId = new ArrayList<>();
+
+            while (resultSet.next()) {
+                values.add(resultSet.getString(2));
+                estadosId.add(resultSet.getInt(1));
+                paisesId.add(resultSet.getInt(3));
+            }
+
+            if (columnValue.equals("")) {
+                    columnValue = "Desconocido";
+            }
+            Integer columnId;
+            ValuesToAdd estado;
+            if (paisesId.contains(idPais) && values.contains(columnValue)) {
+                columnId = estadosId.get(paisesId.indexOf(idPais));
+                repeatedvaluesToAdd.add(new ValuesToAdd(header, columnId, columnValue, "estado"));
+            } else {
+                nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "estado"));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static void getInsertLocalidades(){
-        if (nonRepeatedvaluesToAdd.stream().filter(columnValue -> columnValue.getColumnName().equals("pais")).findFirst().orElse(null)!=null){
-            nonRepeatedvaluesToAdd.add(new ValuesToAdd(8, null, localidad.getNombreEstado(), "estado"));
-            nonRepeatedvaluesToAdd.add(new ValuesToAdd(7, null, localidad.getNombreLocalidad(), "localidad"));
-            return;
-        }
-        if(nonRepeatedvaluesToAdd.stream().filter(columnValue -> columnValue.getColumnName().equals("estado")).findFirst().orElse(null)!=null){
+    private static void getLocalidad(int header, Connection connection, int idPais, int idEstado, String columnValue) throws SQLException {
 
-        }
-    }
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT * \n" +
+                        "FROM " + "localidad")) {
+            ResultSet resultSet = statement.executeQuery();
 
-    private static void checkLocalidades(String columnValue, int headerNum, Map<String, Integer> columnMap) {
-        if(headerNum == 7)
-        {
-            localidad.setNombreLocalidad(columnValue);
-            localidad.setLocalidadesMap(columnMap);
-        }
-        if(headerNum == 8)
-        {
-            localidad.setNombreEstado(columnValue);
-            localidad.setEstadosMap(columnMap);
-        }
-        if(headerNum == 9)
-        {
-            localidad.setNombrePais(columnValue);
+            ArrayList<String> values = new ArrayList<>();
+            Map<Integer, Map<Integer, Integer>> localidadesMap = new HashMap<>();
+
+            while (resultSet.next()) {
+                values.add(resultSet.getString(2));
+                Map<Integer, Integer> estadoMap = new HashMap<>();
+                estadoMap.put(4, 1);
+                localidadesMap.put(resultSet.getInt(3), estadoMap);
+            }
+
+            if (columnValue.equals("")) {
+                columnValue = "Desconocido";
+            }
+            Integer columnId;
+
+            if (localidadesMap.containsKey(idPais) && localidadesMap.get(idPais).containsKey(idEstado) && values.contains(columnValue)) {
+                columnId = localidadesMap.get(idPais).get(idEstado);
+                repeatedvaluesToAdd.add(new ValuesToAdd(header, columnId, columnValue, "localidad"));
+            } else {
+                nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "localidad"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
