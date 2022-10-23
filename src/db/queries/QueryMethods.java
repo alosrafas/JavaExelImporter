@@ -1,9 +1,12 @@
+package db.queries;
+
+import models.Localidad;
+import models.Mineral;
+import models.ValuesToAdd;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Row;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -16,7 +19,7 @@ public class QueryMethods {
     private static final List<String> LOCALIDAD = Arrays.asList("localidad","estado");
     private static final List<Integer> LOCALIDADHEADERS = Arrays.asList(8, 7);
 
-    public static Consumer<Row> insertaDatos(Connection connection, Map<Integer, String> headersMap, List<Integer> headersToCheck, List<Integer> headersWithoutCheck, Map<String, String> columnsToCheck) {
+    public static Consumer<Row> insertaDatos(Connection connection, Map<Integer, String> headersMap, List<Integer> headersToCheck, List<Integer> headersWithoutCheck, Map<String, String> columnsToCheck) throws SQLException {
         return row -> {
             headersWithoutCheck.forEach(header -> valuesToInsert.put(header, row.getCell(header).toString()));
 
@@ -80,14 +83,13 @@ public class QueryMethods {
                     parseIfNotNull(valuesToInsert.get(14)), valuesToInsert.get(15), Integer.parseInt(valuesToInsert.get(16)), valuesToInsert.get(17), Integer.parseInt(valuesToInsert.get(18)),
                     valuesToInsert.get(19), valuesToInsert.get(20)));
 
-            minerals.toString();
             repeatedvaluesToAdd.clear();
             nonRepeatedvaluesToAdd.clear();
             valuesToInsert.clear();
         };
     }
 
-    private static void insertValuesMinerales(Connection connection) throws SQLException {
+    public static void insertValuesMinerales(Connection connection) throws SQLException {
         String sqlQuery = "insert into minerales values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
@@ -105,9 +107,18 @@ public class QueryMethods {
                     pstmt.setInt(10, mineral.getIdPais());
                     pstmt.setInt(11, mineral.getIdClaseQuimica());
                     pstmt.setInt(12, mineral.getIdGrupo());
-                    pstmt.setDouble(13,mineral.getLargo());
-                    pstmt.setDouble(14,mineral.getAlto());
-                    pstmt.setDouble(15,mineral.getAncho());
+                    if(mineral.getLargo()!=null)
+                        pstmt.setDouble(13,mineral.getLargo());
+                    else
+                        pstmt.setNull(13, Types.DOUBLE);
+                    if (mineral.getAlto()!=null)
+                        pstmt.setDouble(14,mineral.getAlto());
+                    else
+                        pstmt.setNull(14, Types.DOUBLE);
+                    if (mineral.getAncho()!=null)
+                        pstmt.setDouble(15,mineral.getAncho());
+                    else
+                        pstmt.setNull(15, Types.DOUBLE);
                     pstmt.setString(16,mineral.getNotasCampo());
                     pstmt.setInt(17, mineral.getIdUbicacion());
                     pstmt.setString(18,mineral.getObservaciones());
@@ -121,10 +132,11 @@ public class QueryMethods {
             });
 
             int[] result = pstmt.executeBatch();
-            System.out.println("The number of rows inserted: " + result.length);
-            //connection.commit();
+            System.out.println("Numero de renglones insertados: " + result.length);
+            connection.commit();
         } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("No se pudieron insertar los valores en la tabla Minerales ");
             connection.rollback();
         }
     }
@@ -228,22 +240,29 @@ public class QueryMethods {
 
     private static void getInsertValues(Connection connection, String table, String columnValue, int headerNum){
         Map<String, Integer> columnMap = new HashMap<>();
+        Map<String, String> columnMapWithoutAccentsAndUpperCase = new HashMap<>();
+
+        String columnValueWithoutAccentsAndUpperCase = StringUtils.stripAccents(columnValue.toLowerCase());
 
         try (PreparedStatement statement = connection.prepareStatement(
             "SELECT * \n" +
             "FROM " + table)) {
             ResultSet resultSet = statement.executeQuery();
+            String valueToMap;
             while (resultSet.next()) {
-                columnMap.put(resultSet.getString(2), resultSet.getInt(1));
+                valueToMap = resultSet.getString(2);
+
+                columnMap.put(valueToMap, resultSet.getInt(1));
+                columnMapWithoutAccentsAndUpperCase.put(StringUtils.stripAccents(valueToMap.toLowerCase()) ,valueToMap);
             }
             Integer columnId;
-            if (headerNum==9) {
+            if (table.equals("pais")) {
                 if (columnValue.equals("")) {
                     columnValue = "Desconocido";
                 }
             }
-            if (columnMap.containsKey(columnValue)) {
-                columnId = columnMap.get(columnValue);
+            if (columnMapWithoutAccentsAndUpperCase.containsKey(columnValueWithoutAccentsAndUpperCase)) {
+                columnId = columnMap.get(columnMapWithoutAccentsAndUpperCase.get(columnValueWithoutAccentsAndUpperCase));
                 repeatedvaluesToAdd.add(new ValuesToAdd(headerNum, columnId, columnValue, table));
             } else {
                 nonRepeatedvaluesToAdd.add(new ValuesToAdd(headerNum, null, columnValue, table));
@@ -317,14 +336,18 @@ public class QueryMethods {
                         "FROM " + "localidad")) {
             ResultSet resultSet = statement.executeQuery();
 
-            ArrayList<String> values = new ArrayList<>();
-            Map<Integer, Map<Integer, Integer>> localidadesMap = new HashMap<>();
+            ArrayList<Localidad> localidades = new ArrayList<>();
 
+            int localidadId;
+            int estadoId;
+            int paisId;
+            String value;
             while (resultSet.next()) {
-                values.add(resultSet.getString(2));
-                Map<Integer, Integer> estadoMap = new HashMap<>();
-                estadoMap.put(4, 1);
-                localidadesMap.put(resultSet.getInt(3), estadoMap);
+                localidadId = resultSet.getInt(1);
+                estadoId = resultSet.getInt(4);
+                paisId = resultSet.getInt(3);
+                value = resultSet.getString(2);
+                localidades.add(new Localidad(localidadId, estadoId, paisId, value));
             }
 
             if (columnValue.equals("")) {
@@ -332,8 +355,16 @@ public class QueryMethods {
             }
             Integer columnId;
 
-            if (localidadesMap.containsKey(idPais) && localidadesMap.get(idPais).containsKey(idEstado) && values.contains(columnValue)) {
-                columnId = localidadesMap.get(idPais).get(idEstado);
+            String finalColumnValue = columnValue;
+
+            Localidad localidad = localidades.stream()
+                    .filter(local -> local.getPaisId().equals(idPais)
+                            && local.getEstadoId().equals(idEstado)
+                            && local.getNombreLocalidad().equals(finalColumnValue))
+                    .findAny().orElse(null);
+
+            if (localidad!=null) {
+                columnId = localidad.getLocalidadId();
                 repeatedvaluesToAdd.add(new ValuesToAdd(header, columnId, columnValue, "localidad"));
             } else {
                 nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "localidad"));

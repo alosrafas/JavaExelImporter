@@ -1,3 +1,5 @@
+package models;
+
 public class Mineral {
     private String numero;
     private int idClasificacion;

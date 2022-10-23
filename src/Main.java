@@ -1,6 +1,9 @@
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import db.MariaDbConnection;
+import excel.ExcelReadData;
+import db.queries.QueryMethods;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Row;
 
@@ -31,7 +34,7 @@ public class Main {
             return;
         }
 
-        excelReadData = new ExcelReadData("MalpicaPrueba.xlsx");
+        excelReadData = new ExcelReadData("MalpicaNew.xlsx");
 
         Map<Integer, String> headersMap = excelReadData.getHeaders();
 
@@ -48,7 +51,7 @@ public class Main {
         ArrayList<Row> rowList = excelReadData.getRows();
 
         rowList.forEach(QueryMethods.insertaDatos(connection, headersMap, headersToCheck, headersWithoutCheck, columnsToCheck));
-
+        QueryMethods.insertValuesMinerales(connection);
         connection.close();
     }
 }

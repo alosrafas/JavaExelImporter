@@ -1,3 +1,5 @@
+package models;
+
 public class ValuesToAdd {
     private Integer columId;
     private String columnValue;

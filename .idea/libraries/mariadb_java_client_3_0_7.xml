@@ -1,15 +1,16 @@
 <component name="libraryTable">
   <library name="mariadb-java-client-3.0.7">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/mariadb-java-client-3.0.7.jar!/" />
-      <root url="jar://$PROJECT_DIR$/commons-collections4-4.1.jar!/" />
-      <root url="jar://$PROJECT_DIR$/poi-3.17.jar!/" />
-      <root url="jar://$PROJECT_DIR$/poi-ooxml-3.17.jar!/" />
-      <root url="jar://$PROJECT_DIR$/poi-ooxml-schemas-3.17.jar!/" />
-      <root url="jar://$PROJECT_DIR$/xmlbeans-2.6.0.jar!/" />
-      <root url="jar://$PROJECT_DIR$/jackson-core-2.13.4.jar!/" />
-      <root url="jar://$PROJECT_DIR$/jackson-databind-2.13.4.jar!/" />
-      <root url="jar://$PROJECT_DIR$/jackson-annotations-2.13.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/commons-collections4-4.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/jackson-annotations-2.13.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/jackson-core-2.13.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/jackson-databind-2.13.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/mariadb-java-client-3.0.7.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/poi-3.17.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/poi-ooxml-3.17.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/poi-ooxml-schemas-3.17.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/xmlbeans-2.6.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/commons-lang3-3.12.0.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
