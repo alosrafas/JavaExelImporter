@@ -3,7 +3,6 @@ package db.queries;
 import models.Localidad;
 import models.Mineral;
 import models.ValuesToAdd;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.sql.*;
@@ -239,35 +238,28 @@ public class QueryMethods {
     }
 
     private static void getInsertValues(Connection connection, String table, String columnValue, int headerNum){
-        Map<String, Integer> columnMap = new HashMap<>();
-        Map<String, String> columnMapWithoutAccentsAndUpperCase = new HashMap<>();
-
-        String columnValueWithoutAccentsAndUpperCase = StringUtils.stripAccents(columnValue.toLowerCase());
-
+        if (table.equals("pais")) {
+            if (columnValue.equals("")) {
+                columnValue = "Desconocido";
+            }
+        }
         try (PreparedStatement statement = connection.prepareStatement(
             "SELECT * \n" +
-            "FROM " + table)) {
+            "FROM " + table +
+            "WHERE nombre = ?")) {
+
+            statement.setString(1, columnValue);
+        
             ResultSet resultSet = statement.executeQuery();
-            String valueToMap;
-            while (resultSet.next()) {
-                valueToMap = resultSet.getString(2);
+            int columnId;
 
-                columnMap.put(valueToMap, resultSet.getInt(1));
-                columnMapWithoutAccentsAndUpperCase.put(StringUtils.stripAccents(valueToMap.toLowerCase()) ,valueToMap);
-            }
-            Integer columnId;
-            if (table.equals("pais")) {
-                if (columnValue.equals("")) {
-                    columnValue = "Desconocido";
-                }
-            }
-            if (columnMapWithoutAccentsAndUpperCase.containsKey(columnValueWithoutAccentsAndUpperCase)) {
-                columnId = columnMap.get(columnMapWithoutAccentsAndUpperCase.get(columnValueWithoutAccentsAndUpperCase));
+            if (resultSet.next()==true){
+                columnId = resultSet.getInt(1);
                 repeatedvaluesToAdd.add(new ValuesToAdd(headerNum, columnId, columnValue, table));
-            } else {
-                nonRepeatedvaluesToAdd.add(new ValuesToAdd(headerNum, null, columnValue, table));
             }
-
+            else
+                nonRepeatedvaluesToAdd.add(new ValuesToAdd(headerNum, null, columnValue, table));
+            
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -297,78 +289,57 @@ public class QueryMethods {
     }
 
     private static void getEstado(int header, Connection connection, int idPais, String columnValue) throws SQLException {
-
+        if (columnValue.equals("")) {
+            columnValue = "Desconocido";
+        }
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT * \n" +
-                        "FROM " + "estado")) {
+                "FROM estado" +
+                "WHERE idPais=?" +
+                "AND nombre=?")
+            ) {
+            statement.setInt(1, idPais);
+            statement.setString(2, columnValue);
             ResultSet resultSet = statement.executeQuery();
 
-            ArrayList<String> values = new ArrayList<>();
-            ArrayList<Integer> estadosId = new ArrayList<>();
-            ArrayList<Integer> paisesId = new ArrayList<>();
-
-            while (resultSet.next()) {
-                values.add(resultSet.getString(2));
-                estadosId.add(resultSet.getInt(1));
-                paisesId.add(resultSet.getInt(3));
-            }
-
-            if (columnValue.equals("")) {
-                    columnValue = "Desconocido";
-            }
             Integer columnId;
-            ValuesToAdd estado;
-            if (paisesId.contains(idPais) && values.contains(columnValue)) {
-                columnId = estadosId.get(paisesId.indexOf(idPais));
+            if(resultSet.next()){
+                columnId = resultSet.getInt(1);
                 repeatedvaluesToAdd.add(new ValuesToAdd(header, columnId, columnValue, "estado"));
-            } else {
-                nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "estado"));
             }
+            else
+                nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "estado"));
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
     private static void getLocalidad(int header, Connection connection, int idPais, int idEstado, String columnValue) throws SQLException {
-
+        if (columnValue.equals("")) {
+            columnValue = "Desconocido";
+        }
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT * \n" +
-                        "FROM " + "localidad")) {
+                "FROM " + "localidad" +
+                "WHERE idPais=?" +
+                "AND idEstado=?" +
+                "AND nombre=?")
+            ) {
+            statement.setInt(1, idPais);
+            statement.setInt(2, idEstado);
+            statement.setString(3, columnValue);
+
             ResultSet resultSet = statement.executeQuery();
 
             ArrayList<Localidad> localidades = new ArrayList<>();
-
             int localidadId;
-            int estadoId;
-            int paisId;
-            String value;
-            while (resultSet.next()) {
+
+            if(resultSet.next()){
                 localidadId = resultSet.getInt(1);
-                estadoId = resultSet.getInt(4);
-                paisId = resultSet.getInt(3);
-                value = resultSet.getString(2);
-                localidades.add(new Localidad(localidadId, estadoId, paisId, value));
+                repeatedvaluesToAdd.add(new ValuesToAdd(header, localidadId, columnValue, "localidad"));
             }
-
-            if (columnValue.equals("")) {
-                columnValue = "Desconocido";
-            }
-            Integer columnId;
-
-            String finalColumnValue = columnValue;
-
-            Localidad localidad = localidades.stream()
-                    .filter(local -> local.getPaisId().equals(idPais)
-                            && local.getEstadoId().equals(idEstado)
-                            && local.getNombreLocalidad().equals(finalColumnValue))
-                    .findAny().orElse(null);
-
-            if (localidad!=null) {
-                columnId = localidad.getLocalidadId();
-                repeatedvaluesToAdd.add(new ValuesToAdd(header, columnId, columnValue, "localidad"));
-            } else {
-                nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "localidad"));
-            }
+            else
+                nonRepeatedvaluesToAdd.add(new ValuesToAdd(header, null, columnValue, "localidad"));         
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
