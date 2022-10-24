@@ -45,7 +45,6 @@ public class ExcelReadData
             sheet.forEach(rowsList::add);
             rowsList.remove(0);
             rowsList = rowsList.stream().filter(row -> !isRowEmpty(row)).collect(Collectors.toCollection(ArrayList::new));
-
             return rowsList;
         }
         catch(Exception e)

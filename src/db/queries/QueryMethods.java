@@ -1,6 +1,5 @@
 package db.queries;
 
-import models.Localidad;
 import models.Mineral;
 import models.ValuesToAdd;
 import org.apache.poi.ss.usermodel.Row;
@@ -18,7 +17,7 @@ public class QueryMethods {
     private static final List<String> LOCALIDAD = Arrays.asList("localidad","estado");
     private static final List<Integer> LOCALIDADHEADERS = Arrays.asList(8, 7);
 
-    public static Consumer<Row> insertaDatos(Connection connection, Map<Integer, String> headersMap, List<Integer> headersToCheck, List<Integer> headersWithoutCheck, Map<String, String> columnsToCheck) throws SQLException {
+    public static Consumer<Row> insertaDatos(Connection connection, Map<Integer, String> headersMap, List<Integer> headersToCheck, List<Integer> headersWithoutCheck, Map<String, String> columnsToCheck) {
         return row -> {
             headersWithoutCheck.forEach(header -> valuesToInsert.put(header, row.getCell(header).toString()));
 
@@ -28,7 +27,6 @@ public class QueryMethods {
                     columnsToCheck.get(headersMap.get(header)),
                     row.getCell(header).getStringCellValue(),
                     header));
-
 
             List<Integer> localidadHeaders = headersToCheck.stream()
                     .filter(LOCALIDADHEADERS::contains)
@@ -145,8 +143,7 @@ public class QueryMethods {
         try (PreparedStatement pstmt = connection.prepareStatement(sqlQuery)) {
             connection.setAutoCommit(false);
             pstmt.setString(1, value);
-            boolean result = pstmt.execute();
-            System.out.println("Row inserted: "+ result);
+            pstmt.execute();
             connection.commit();
 
             sqlQuery = "SELECT LAST_INSERT_ID()";
@@ -180,8 +177,7 @@ public class QueryMethods {
             pstmt.setString(1, value);
             pstmt.setInt(2, idEstado);
             pstmt.setInt(3, idPais);
-            boolean result = pstmt.execute();
-            System.out.println("Row inserted: "+ result);
+            pstmt.execute();
             connection.commit();
 
             sqlQuery = "select idLocalidad from localidad where idPais=? and idEstado=? order by idLocalidad desc limit 1";
@@ -206,8 +202,7 @@ public class QueryMethods {
             connection.setAutoCommit(false);
             pstmt.setString(1, value);
             pstmt.setInt(2, idPais);
-            boolean result = pstmt.execute();
-            System.out.println("Row inserted: "+ result);
+            pstmt.execute();
             connection.commit();
 
             sqlQuery = "select idEstado from estado where idPais=? order by idEstado desc limit 1";
@@ -245,15 +240,15 @@ public class QueryMethods {
         }
         try (PreparedStatement statement = connection.prepareStatement(
             "SELECT * \n" +
-            "FROM " + table +
-            "WHERE nombre = ?")) {
+            "FROM " + table + "\n" +
+            "WHERE nombre=?")) {
 
             statement.setString(1, columnValue);
         
             ResultSet resultSet = statement.executeQuery();
             int columnId;
 
-            if (resultSet.next()==true){
+            if (resultSet.next()){
                 columnId = resultSet.getInt(1);
                 repeatedvaluesToAdd.add(new ValuesToAdd(headerNum, columnId, columnValue, table));
             }
@@ -266,9 +261,11 @@ public class QueryMethods {
     }
 
     private static void getInsertLocalidades(Connection connection, String table, String columnValue, int headerNum) throws SQLException {
-
         ValuesToAdd pais = repeatedvaluesToAdd.stream().filter(values -> values.getColumnName().equals("pais")).findFirst().orElse(null);
-        ValuesToAdd estado = null;
+        ValuesToAdd estado;
+        if (columnValue.equals("")) {
+            columnValue = "Desconocido";
+        }
         if(pais!=null && pais.getColumId()!=null) {
             if(table.equals("estado")) {
                 getEstado(LOCALIDADHEADERS.get(0), connection, pais.getColumId(), columnValue);
@@ -288,21 +285,18 @@ public class QueryMethods {
         }
     }
 
-    private static void getEstado(int header, Connection connection, int idPais, String columnValue) throws SQLException {
-        if (columnValue.equals("")) {
-            columnValue = "Desconocido";
-        }
+    private static void getEstado(int header, Connection connection, int idPais, String columnValue) {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT * \n" +
-                "FROM estado" +
-                "WHERE idPais=?" +
+                "FROM estado " +
+                "WHERE idPais=? " +
                 "AND nombre=?")
             ) {
             statement.setInt(1, idPais);
             statement.setString(2, columnValue);
             ResultSet resultSet = statement.executeQuery();
 
-            Integer columnId;
+            int columnId;
             if(resultSet.next()){
                 columnId = resultSet.getInt(1);
                 repeatedvaluesToAdd.add(new ValuesToAdd(header, columnId, columnValue, "estado"));
@@ -314,15 +308,12 @@ public class QueryMethods {
         }
     }
 
-    private static void getLocalidad(int header, Connection connection, int idPais, int idEstado, String columnValue) throws SQLException {
-        if (columnValue.equals("")) {
-            columnValue = "Desconocido";
-        }
+    private static void getLocalidad(int header, Connection connection, int idPais, int idEstado, String columnValue) {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT * \n" +
-                "FROM " + "localidad" +
-                "WHERE idPais=?" +
-                "AND idEstado=?" +
+                "FROM localidad " +
+                "WHERE idPais=? " +
+                "AND idEstado=? " +
                 "AND nombre=?")
             ) {
             statement.setInt(1, idPais);
@@ -331,7 +322,6 @@ public class QueryMethods {
 
             ResultSet resultSet = statement.executeQuery();
 
-            ArrayList<Localidad> localidades = new ArrayList<>();
             int localidadId;
 
             if(resultSet.next()){
